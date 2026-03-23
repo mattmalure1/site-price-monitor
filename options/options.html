@@ -16,6 +16,22 @@
       </div>
     </div>
 
+    <!-- Appearance -->
+    <section class="section">
+      <h2>Appearance</h2>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label for="dark-mode">Theme</label>
+          <p class="setting-desc">Choose light, dark, or follow your system preference</p>
+        </div>
+        <select id="dark-mode">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+    </section>
+
     <!-- General Settings -->
     <section class="section">
       <h2>General</h2>
@@ -44,6 +60,35 @@
           <input type="checkbox" id="chrome-notifications" checked>
           <span class="toggle-slider"></span>
         </label>
+      </div>
+    </section>
+
+    <!-- Alert Settings -->
+    <section class="section">
+      <h2>Alert Behavior</h2>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Digest Mode</label>
+          <p class="setting-desc">Batch all alerts from a check cycle into a single notification instead of one per item</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="digest-mode">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label for="alert-cooldown">Alert Cooldown</label>
+          <p class="setting-desc">Minimum time between repeat alerts for the same item</p>
+        </div>
+        <select id="alert-cooldown">
+          <option value="0">No cooldown</option>
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60" selected>1 hour</option>
+          <option value="360">6 hours</option>
+          <option value="1440">24 hours</option>
+        </select>
       </div>
     </section>
 
@@ -129,9 +174,12 @@
     </section>
 
     <div class="footer">
-      <p>Site Price Monitor v1.0.0</p>
+      <p>Site Price Monitor v2.0.0</p>
     </div>
   </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
 
   <script src="options.js" type="module"></script>
 </body>

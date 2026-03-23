@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Site Price Monitor",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Track prices on any website. Get notified via Discord, Chrome, and Email when prices drop. Log everything to Google Sheets.",
   "permissions": [
     "storage",
@@ -10,7 +10,8 @@
     "identity",
     "activeTab",
     "scripting",
-    "offscreen"
+    "offscreen",
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -41,5 +42,27 @@
     "128": "icons/icon128.png"
   },
   "options_page": "options/options.html",
-  "content_scripts": []
+  "commands": {
+    "start-picker": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+P",
+        "mac": "Command+Shift+P"
+      },
+      "description": "Start element picker on the current page"
+    },
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+M",
+        "mac": "Command+Shift+M"
+      },
+      "description": "Open Price Monitor popup"
+    }
+  },
+  "content_scripts": [],
+  "web_accessible_resources": [
+    {
+      "resources": ["history/history.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

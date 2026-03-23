@@ -2,8 +2,11 @@ import { getSettings, saveSettings, getAllItems, getAllPriceHistory, STORAGE_KEY
 import { connectGoogleAccount, disconnectGoogleAccount, getSpreadsheetUrl } from '../lib/sheets-api.js';
 
 // DOM refs
+const darkMode = document.getElementById('dark-mode');
 const defaultInterval = document.getElementById('default-interval');
 const chromeNotifications = document.getElementById('chrome-notifications');
+const digestMode = document.getElementById('digest-mode');
+const alertCooldown = document.getElementById('alert-cooldown');
 const discordWebhook = document.getElementById('discord-webhook');
 const btnTestDiscord = document.getElementById('btn-test-discord');
 const discordStatus = document.getElementById('discord-status');
@@ -24,10 +27,16 @@ document.addEventListener('DOMContentLoaded', loadSettings);
 async function loadSettings() {
   const settings = await getSettings();
 
+  darkMode.value = settings.darkMode || 'system';
   defaultInterval.value = settings.defaultCheckIntervalMinutes;
   chromeNotifications.checked = settings.chromeNotificationsEnabled !== false;
+  digestMode.checked = settings.digestMode || false;
+  alertCooldown.value = settings.alertCooldownMinutes || 60;
   discordWebhook.value = settings.discordWebhookUrl || '';
   emailEnabled.checked = settings.emailEnabled || false;
+
+  // Apply theme
+  applyTheme(settings.darkMode || 'system');
 
   // Google Sheets state
   if (settings.sheetsEnabled && settings.spreadsheetId) {
@@ -40,8 +49,14 @@ async function loadSettings() {
   }
 
   // Event listeners
+  darkMode.addEventListener('change', () => {
+    applyTheme(darkMode.value);
+    saveCurrentSettings();
+  });
   defaultInterval.addEventListener('change', saveCurrentSettings);
   chromeNotifications.addEventListener('change', saveCurrentSettings);
+  digestMode.addEventListener('change', saveCurrentSettings);
+  alertCooldown.addEventListener('change', saveCurrentSettings);
   discordWebhook.addEventListener('change', saveCurrentSettings);
   emailEnabled.addEventListener('change', saveCurrentSettings);
 
@@ -54,23 +69,51 @@ async function loadSettings() {
   btnClear.addEventListener('click', clearAllData);
 }
 
+function applyTheme(mode) {
+  const dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+}
+
 async function saveCurrentSettings() {
   await saveSettings({
+    darkMode: darkMode.value,
     defaultCheckIntervalMinutes: parseInt(defaultInterval.value),
     chromeNotificationsEnabled: chromeNotifications.checked,
+    digestMode: digestMode.checked,
+    alertCooldownMinutes: parseInt(alertCooldown.value),
     discordWebhookUrl: discordWebhook.value.trim(),
     emailEnabled: emailEnabled.checked
   });
 
-  // Notify background to update alarm
   chrome.runtime.sendMessage({ type: 'SETUP_ALARM' });
+  showToast('Settings saved');
+}
+
+// --- Toast ---
+function showToast(msg, type = 'success') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
 }
 
 // --- Discord ---
 async function testDiscord() {
   const url = discordWebhook.value.trim();
   if (!url) {
-    showStatus(discordStatus, 'Please enter a webhook URL', 'error');
+    showToast('Please enter a webhook URL', 'error');
+    return;
+  }
+
+  // Basic URL validation
+  if (!url.startsWith('https://discord.com/api/webhooks/') && !url.startsWith('https://discordapp.com/api/webhooks/')) {
+    showToast('Invalid Discord webhook URL format', 'error');
     return;
   }
 
@@ -82,9 +125,9 @@ async function testDiscord() {
     btnTestDiscord.textContent = 'Test';
 
     if (response && response.ok) {
-      showStatus(discordStatus, 'Test message sent successfully!', 'success');
+      showToast('Test message sent successfully!');
     } else {
-      showStatus(discordStatus, 'Failed to send test message. Check the webhook URL.', 'error');
+      showToast('Failed to send test message. Check the URL.', 'error');
     }
   });
 }
@@ -99,8 +142,9 @@ async function connectGoogle() {
     sheetsDisconnected.classList.add('hidden');
     sheetsConnected.classList.remove('hidden');
     sheetsLink.href = getSpreadsheetUrl(spreadsheetId);
+    showToast('Google Sheets connected!');
   } catch (err) {
-    alert('Failed to connect Google account: ' + err.message);
+    showToast('Failed to connect: ' + err.message, 'error');
   } finally {
     btnConnectGoogle.disabled = false;
     btnConnectGoogle.innerHTML = `
@@ -118,6 +162,7 @@ async function disconnectGoogle() {
   await disconnectGoogleAccount();
   sheetsDisconnected.classList.remove('hidden');
   sheetsConnected.classList.add('hidden');
+  showToast('Google account disconnected');
 }
 
 // --- Data Management ---
@@ -135,6 +180,7 @@ async function exportData() {
   a.download = `site-price-monitor-export-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
+  showToast('Data exported');
 }
 
 async function importData(e) {
@@ -143,26 +189,29 @@ async function importData(e) {
 
   try {
     const text = await file.text();
-    const data = JSON.parse(text);
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      showToast('Invalid JSON file', 'error');
+      return;
+    }
 
     if (!data.items || !data.priceHistory) {
-      alert('Invalid export file format.');
+      showToast('Invalid export file format', 'error');
       return;
     }
 
     if (!confirm('This will merge imported data with your existing data. Continue?')) return;
 
-    // Merge items
     const currentItems = await getAllItems();
     const mergedItems = { ...currentItems, ...data.items };
     await chrome.storage.local.set({ [STORAGE_KEYS.ITEMS]: mergedItems });
 
-    // Merge history
     const currentHistory = await getAllPriceHistory();
     const mergedHistory = { ...currentHistory };
     for (const [itemId, records] of Object.entries(data.priceHistory)) {
       if (mergedHistory[itemId]) {
-        // Combine and deduplicate by timestamp
         const existing = new Set(mergedHistory[itemId].map(r => r.timestamp));
         for (const record of records) {
           if (!existing.has(record.timestamp)) {
@@ -176,10 +225,10 @@ async function importData(e) {
     }
     await chrome.storage.local.set({ [STORAGE_KEYS.PRICE_HISTORY]: mergedHistory });
 
-    alert(`Imported ${Object.keys(data.items).length} items successfully!`);
+    showToast(`Imported ${Object.keys(data.items).length} items!`);
     chrome.runtime.sendMessage({ type: 'SETUP_ALARM' });
   } catch (err) {
-    alert('Failed to import: ' + err.message);
+    showToast('Import failed: ' + err.message, 'error');
   }
 
   importFile.value = '';
@@ -190,14 +239,6 @@ async function clearAllData() {
   if (!confirm('Really delete everything?')) return;
 
   await chrome.storage.local.clear();
-  alert('All data cleared.');
-  location.reload();
-}
-
-// --- Utilities ---
-function showStatus(el, msg, type) {
-  el.textContent = msg;
-  el.className = `status-msg ${type}`;
-  el.classList.remove('hidden');
-  setTimeout(() => el.classList.add('hidden'), 4000);
+  showToast('All data cleared');
+  setTimeout(() => location.reload(), 1000);
 }

@@ -58,7 +58,13 @@
       "description": "Open Price Monitor popup"
     }
   },
-  "content_scripts": [],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/price-overlay.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "web_accessible_resources": [
     {
       "resources": ["history/history.html"],

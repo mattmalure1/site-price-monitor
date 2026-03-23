@@ -15,6 +15,7 @@ const sheetsConnected = document.getElementById('sheets-connected');
 const btnConnectGoogle = document.getElementById('btn-connect-google');
 const btnDisconnectGoogle = document.getElementById('btn-disconnect-google');
 const sheetsLink = document.getElementById('sheets-link');
+const overlayEnabled = document.getElementById('overlay-enabled');
 const emailEnabled = document.getElementById('email-enabled');
 const btnExport = document.getElementById('btn-export');
 const btnImport = document.getElementById('btn-import');
@@ -34,6 +35,7 @@ async function loadSettings() {
   alertCooldown.value = settings.alertCooldownMinutes || 60;
   discordWebhook.value = settings.discordWebhookUrl || '';
   emailEnabled.checked = settings.emailEnabled || false;
+  overlayEnabled.checked = settings.overlayEnabled !== false;
 
   // Apply theme
   applyTheme(settings.darkMode || 'system');
@@ -59,6 +61,7 @@ async function loadSettings() {
   alertCooldown.addEventListener('change', saveCurrentSettings);
   discordWebhook.addEventListener('change', saveCurrentSettings);
   emailEnabled.addEventListener('change', saveCurrentSettings);
+  overlayEnabled.addEventListener('change', saveCurrentSettings);
 
   btnTestDiscord.addEventListener('click', testDiscord);
   btnConnectGoogle.addEventListener('click', connectGoogle);
@@ -82,7 +85,8 @@ async function saveCurrentSettings() {
     digestMode: digestMode.checked,
     alertCooldownMinutes: parseInt(alertCooldown.value),
     discordWebhookUrl: discordWebhook.value.trim(),
-    emailEnabled: emailEnabled.checked
+    emailEnabled: emailEnabled.checked,
+    overlayEnabled: overlayEnabled.checked
   });
 
   chrome.runtime.sendMessage({ type: 'SETUP_ALARM' });

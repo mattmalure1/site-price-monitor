@@ -76,8 +76,12 @@ async function checkPendingPick() {
   const result = await chrome.storage.local.get('pendingPick');
   if (result.pendingPick) {
     const msg = result.pendingPick;
+    if (msg.url) inputUrl.value = msg.url;
     inputSelector.value = msg.selector;
     inputCurrentPrice.value = msg.text;
+    if (!inputName.value && msg.text) {
+      inputName.value = msg.text.slice(0, 60);
+    }
     showAddForm();
     chrome.storage.local.remove('pendingPick');
   }

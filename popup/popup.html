@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Price Monitor</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <img src="../icons/icon48.png" alt="Logo" class="logo">
+        <h1>Price Monitor</h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-settings" class="icon-btn" title="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat">
+        <span class="stat-value" id="stat-total">0</span>
+        <span class="stat-label">Tracked</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value stat-alert" id="stat-below">0</span>
+        <span class="stat-label">Below Target</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value stat-active" id="stat-active">0</span>
+        <span class="stat-label">Active</span>
+      </div>
+    </div>
+
+    <!-- Action Button -->
+    <button id="btn-track" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Track Price on This Page
+    </button>
+
+    <!-- Add Item Form (hidden by default) -->
+    <div id="add-form" class="add-form hidden">
+      <h3>Add Price Tracker</h3>
+      <div class="form-group">
+        <label for="input-name">Product Name</label>
+        <input type="text" id="input-name" placeholder="e.g. Widget Pro">
+      </div>
+      <div class="form-group">
+        <label for="input-url">URL</label>
+        <input type="text" id="input-url" placeholder="https://example.com/product" readonly>
+      </div>
+      <div class="form-group">
+        <label for="input-selector">CSS Selector <span class="hint">(auto-detected or manual)</span></label>
+        <input type="text" id="input-selector" placeholder=".price-element">
+      </div>
+      <div class="form-group">
+        <label for="input-current-price">Current Price</label>
+        <input type="text" id="input-current-price" placeholder="$0.00" readonly>
+      </div>
+      <div class="form-row">
+        <div class="form-group flex-1">
+          <label for="input-target-price">Target Price</label>
+          <input type="number" id="input-target-price" placeholder="0.00" step="0.01" min="0">
+        </div>
+        <div class="form-group flex-1">
+          <label for="input-alert-condition">Alert When</label>
+          <select id="input-alert-condition">
+            <option value="below_target">Below Target</option>
+            <option value="any_change">Any Change</option>
+            <option value="percent_drop">% Drop</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group hidden" id="percent-threshold-group">
+        <label for="input-percent-threshold">Drop Threshold (%)</label>
+        <input type="number" id="input-percent-threshold" placeholder="10" min="1" max="100">
+      </div>
+      <div class="form-group">
+        <label for="input-interval">Check Interval</label>
+        <select id="input-interval">
+          <option value="">Use Default</option>
+          <option value="1">1 minute</option>
+          <option value="5">5 minutes</option>
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60">1 hour</option>
+          <option value="360">6 hours</option>
+          <option value="720">12 hours</option>
+          <option value="1440">24 hours</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button id="btn-save" class="btn-primary">Save</button>
+        <button id="btn-cancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Items List -->
+    <div id="items-list" class="items-list">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+        <line x1="7" y1="7" x2="7.01" y2="7"/>
+      </svg>
+      <p>No prices tracked yet</p>
+      <p class="hint">Visit a product page and click "Track Price" to get started</p>
+    </div>
+
+    <!-- Edit Item Modal -->
+    <div id="edit-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3>Edit Tracker</h3>
+        <input type="hidden" id="edit-id">
+        <div class="form-group">
+          <label for="edit-name">Product Name</label>
+          <input type="text" id="edit-name">
+        </div>
+        <div class="form-group">
+          <label for="edit-selector">CSS Selector</label>
+          <input type="text" id="edit-selector">
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="edit-target-price">Target Price</label>
+            <input type="number" id="edit-target-price" step="0.01" min="0">
+          </div>
+          <div class="form-group flex-1">
+            <label for="edit-alert-condition">Alert When</label>
+            <select id="edit-alert-condition">
+              <option value="below_target">Below Target</option>
+              <option value="any_change">Any Change</option>
+              <option value="percent_drop">% Drop</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group hidden" id="edit-percent-threshold-group">
+          <label for="edit-percent-threshold">Drop Threshold (%)</label>
+          <input type="number" id="edit-percent-threshold" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label for="edit-interval">Check Interval</label>
+          <select id="edit-interval">
+            <option value="">Use Default</option>
+            <option value="1">1 minute</option>
+            <option value="5">5 minutes</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="360">6 hours</option>
+            <option value="720">12 hours</option>
+            <option value="1440">24 hours</option>
+          </select>
+        </div>
+        <div class="form-actions">
+          <button id="btn-edit-save" class="btn-primary">Save</button>
+          <button id="btn-edit-cancel" class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

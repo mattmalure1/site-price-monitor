@@ -69,6 +69,8 @@
       "js": [
         "discord-exporter/channel-detector.js",
         "discord-exporter/api-client.js",
+        "discord-exporter/zip-writer.js",
+        "discord-exporter/attachment-downloader.js",
         "discord-exporter/formatters/json-formatter.js",
         "discord-exporter/formatters/html-formatter.js",
         "discord-exporter/formatters/txt-formatter.js",

@@ -85,6 +85,7 @@
   var statusEl = shadow.querySelector('.dce-status');
   var statsEl = shadow.querySelector('.dce-stats');
   var tokenStatusEl = shadow.querySelector('.dce-token-status');
+  var includeAttachmentsCheckbox = shadow.querySelector('#dce-include-attachments');
 
   // --- Event Handlers ---
   triggerBtn.addEventListener('click', function () {
@@ -239,12 +240,16 @@
   // --- Export Logic ---
   var exportedData = null;
   var exportFilename = '';
+  var exportAbortController = null;
 
   async function startExport() {
     var ch = ns.getCurrentChannel();
     if (!ch || !apiClient) return;
 
     setState(STATE.EXPORTING);
+
+    exportAbortController = new AbortController();
+    var signal = exportAbortController.signal;
 
     var dateRange = null;
     if (startDateInput.value || endDateInput.value) {
@@ -253,18 +258,22 @@
       if (endDateInput.value) dateRange.end = new Date(endDateInput.value + 'T23:59:59.999');
     }
 
+    var includeAttachments = includeAttachmentsCheckbox.checked;
+
     try {
+      // Phase 1: Fetch messages
       var messages = await apiClient.fetchAllMessages(ch.channelId, {
         dateRange: dateRange,
         onProgress: function (info) {
           progressBar.classList.remove('indeterminate');
           progressText.textContent = info.fetched + ' messages fetched' +
             (info.status === 'rate_limited' ? ' (rate limited, waiting...)' : '');
-          // Pulse the bar since we don't know total
           var pct = Math.min(95, (info.fetched / 100) * 5);
           progressBar.style.width = pct + '%';
         }
       });
+
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
       if (messages.length === 0) {
         showStatus('No messages found in this channel.', 'info');
@@ -293,27 +302,108 @@
         options.theme = themeSelect.value;
       }
 
-      progressText.textContent = 'Formatting ' + messages.length + ' messages...';
+      // Build filename
+      var channelSlug = (channelMeta.channelName || ch.channelId).replace(/[^a-zA-Z0-9_-]/g, '_');
+      var dateStr = new Date().toISOString().split('T')[0];
+      var baseFilename = 'discord-export-' + channelSlug + '-' + dateStr;
 
-      // Run formatting in next tick to let UI update
+      // Phase 2: Download attachments (if enabled)
+      var attachmentResult = null;
+      if (includeAttachments) {
+        progressBar.style.width = '0%';
+        progressText.textContent = 'Scanning for attachments...';
+        await new Promise(function (r) { setTimeout(r, 50); });
+
+        attachmentResult = await ns.downloadAttachments(messages, {
+          maxSizeMB: 25,
+          signal: signal,
+          onProgress: function (info) {
+            if (info.total === 0) {
+              progressText.textContent = 'No attachments found.';
+              return;
+            }
+            var pct = Math.round((info.downloaded / info.total) * 100);
+            progressBar.style.width = pct + '%';
+            progressText.textContent = 'Downloading attachments... ' +
+              info.downloaded + '/' + info.total +
+              (info.currentFile ? ' (' + info.currentFile + ')' : '');
+          }
+        });
+
+        if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+
+        // For HTML, provide the attachment map so local paths are used
+        if (format === 'html' && attachmentResult.files.size > 0) {
+          options.attachmentMap = attachmentResult.files;
+        }
+      }
+
+      progressText.textContent = 'Formatting ' + messages.length + ' messages...';
       await new Promise(function (r) { setTimeout(r, 50); });
 
       var output = formatter.format(messages, metadata, options);
 
-      // Build filename
-      var channelSlug = (channelMeta.channelName || ch.channelId).replace(/[^a-zA-Z0-9_-]/g, '_');
-      var dateStr = new Date().toISOString().split('T')[0];
-      exportFilename = 'discord-export-' + channelSlug + '-' + dateStr + '.' + formatter.extension;
-      exportedData = { content: output, mimeType: formatter.mimeType };
+      // Build final export
+      if (includeAttachments && attachmentResult && attachmentResult.files.size > 0) {
+        // Bundle into ZIP
+        progressText.textContent = 'Building ZIP file...';
+        await new Promise(function (r) { setTimeout(r, 50); });
 
-      // Show stats
-      var fileSize = new Blob([output]).size;
-      statsEl.innerHTML = '<div><strong>' + messages.length + '</strong> messages exported</div>' +
-        '<div><strong>' + formatFileSize(fileSize) + '</strong> file size</div>' +
-        '<div>From: ' + new Date(messages[0].timestamp).toLocaleDateString() + '</div>' +
-        '<div>To: ' + new Date(messages[messages.length - 1].timestamp).toLocaleDateString() + '</div>';
+        var zip = new ns.ZipWriter();
+        zip.addFile(baseFilename + '.' + formatter.extension, output);
+
+        // Track unique files (avoid duplicates from url/proxy_url mapping)
+        var addedPaths = {};
+        attachmentResult.files.forEach(function (fileInfo) {
+          if (!addedPaths[fileInfo.localPath]) {
+            zip.addFile(fileInfo.localPath, fileInfo.data);
+            addedPaths[fileInfo.localPath] = true;
+          }
+        });
+
+        var zipBlob = zip.toBlob();
+        exportFilename = baseFilename + '.zip';
+        exportedData = { blob: zipBlob, isZip: true };
+
+        // Show stats with attachment info
+        var statLines = [
+          '<div><strong>' + messages.length + '</strong> messages exported</div>',
+          '<div><strong>' + formatFileSize(zipBlob.size) + '</strong> ZIP file size</div>',
+          '<div><strong>' + Object.keys(addedPaths).length + '</strong> attachments downloaded</div>'
+        ];
+        if (attachmentResult.skipped.length > 0) {
+          statLines.push('<div><strong>' + attachmentResult.skipped.length + '</strong> skipped (too large)</div>');
+        }
+        if (attachmentResult.failed.length > 0) {
+          statLines.push('<div><strong>' + attachmentResult.failed.length + '</strong> failed to download</div>');
+        }
+        statLines.push('<div>From: ' + new Date(messages[0].timestamp).toLocaleDateString() + '</div>');
+        statLines.push('<div>To: ' + new Date(messages[messages.length - 1].timestamp).toLocaleDateString() + '</div>');
+        statsEl.innerHTML = statLines.join('');
+      } else {
+        // Single file export (no attachments or no attachments found)
+        exportFilename = baseFilename + '.' + formatter.extension;
+        exportedData = { content: output, mimeType: formatter.mimeType };
+
+        var fileSize = new Blob([output]).size;
+        var statLines = [
+          '<div><strong>' + messages.length + '</strong> messages exported</div>',
+          '<div><strong>' + formatFileSize(fileSize) + '</strong> file size</div>',
+          '<div>From: ' + new Date(messages[0].timestamp).toLocaleDateString() + '</div>',
+          '<div>To: ' + new Date(messages[messages.length - 1].timestamp).toLocaleDateString() + '</div>'
+        ];
+        if (includeAttachments && attachmentResult) {
+          if (attachmentResult.files.size === 0 && attachmentResult.skipped.length === 0) {
+            statLines.splice(2, 0, '<div>No attachments in this channel</div>');
+          }
+          if (attachmentResult.skipped.length > 0) {
+            statLines.splice(2, 0, '<div><strong>' + attachmentResult.skipped.length + '</strong> attachments skipped (too large)</div>');
+          }
+        }
+        statsEl.innerHTML = statLines.join('');
+      }
+
       statsEl.classList.add('visible');
-
       progressText.textContent = 'Export complete! ' + messages.length + ' messages.';
       showStatus('Ready to download.', 'success');
       setState(STATE.COMPLETE);
@@ -331,6 +421,9 @@
   }
 
   function cancelExport() {
+    if (exportAbortController) {
+      exportAbortController.abort();
+    }
     if (apiClient) {
       apiClient.abort();
     }
@@ -339,7 +432,12 @@
   function downloadExport() {
     if (!exportedData) return;
 
-    var blob = new Blob([exportedData.content], { type: exportedData.mimeType });
+    var blob;
+    if (exportedData.isZip) {
+      blob = exportedData.blob;
+    } else {
+      blob = new Blob([exportedData.content], { type: exportedData.mimeType });
+    }
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
@@ -404,6 +502,15 @@
       '<option value="light">Light</option>' +
       '</select>' +
       '</div>' +
+      '</div>' +
+
+      // Download attachments checkbox
+      '<div class="dce-field">' +
+      '<label class="dce-checkbox-label">' +
+      '<input type="checkbox" id="dce-include-attachments">' +
+      '<span>Download attachments (ZIP)</span>' +
+      '</label>' +
+      '<div class="dce-attachment-hint">Fetches attachment files and bundles everything into a ZIP</div>' +
       '</div>' +
 
       // Date range

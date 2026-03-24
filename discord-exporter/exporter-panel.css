@@ -379,3 +379,27 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
+
+/* Attachment checkbox */
+.dce-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #dbdee1;
+}
+
+.dce-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #5865f2;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dce-attachment-hint {
+  font-size: 11px;
+  color: #949ba4;
+  margin-top: 4px;
+}

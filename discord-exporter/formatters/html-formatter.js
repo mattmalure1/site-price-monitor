@@ -84,17 +84,23 @@
     return html;
   }
 
-  function renderAttachment(att) {
+  function renderAttachment(att, attachmentMap) {
+    var url = att.url;
+    if (attachmentMap) {
+      var mapped = attachmentMap.get(att.url) || attachmentMap.get(att.proxy_url);
+      if (mapped) url = mapped.localPath;
+    }
+
     if (isImageFile(att.filename)) {
-      return '<div class="attachment"><img src="' + escapeHTML(att.url) + '" alt="' +
+      return '<div class="attachment"><img src="' + escapeHTML(url) + '" alt="' +
         escapeHTML(att.filename) + '" loading="lazy" style="max-width:400px;max-height:300px;border-radius:4px;"></div>';
     }
     if (isVideoFile(att.filename)) {
-      return '<div class="attachment"><video src="' + escapeHTML(att.url) +
+      return '<div class="attachment"><video src="' + escapeHTML(url) +
         '" controls style="max-width:400px;border-radius:4px;"></video></div>';
     }
     var sizeStr = att.size ? ' (' + formatFileSize(att.size) + ')' : '';
-    return '<div class="attachment file-attachment"><a href="' + escapeHTML(att.url) +
+    return '<div class="attachment file-attachment"><a href="' + escapeHTML(url) +
       '" target="_blank" rel="noopener">' + escapeHTML(att.filename) + sizeStr + '</a></div>';
   }
 
@@ -327,7 +333,7 @@
       // Attachments
       if (msg.attachments) {
         for (var a = 0; a < msg.attachments.length; a++) {
-          parts.push(renderAttachment(msg.attachments[a]));
+          parts.push(renderAttachment(msg.attachments[a], options.attachmentMap));
         }
       }
 

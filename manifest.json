@@ -38,7 +38,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["exporter-inject.js"],
+      "resources": ["exporter-inject.js", "exporter-panel.css"],
       "matches": ["*://discord.com/*", "*://discordapp.com/*"]
     }
   ]

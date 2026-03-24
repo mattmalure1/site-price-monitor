@@ -1,96 +1,44 @@
 {
   "manifest_version": 3,
-  "name": "Site Price Monitor",
-  "version": "2.0.0",
-  "description": "Track prices on any website. Get notified via Discord, Chrome, and Email when prices drop. Log everything to Google Sheets.",
-  "permissions": [
-    "storage",
-    "alarms",
-    "notifications",
-    "identity",
-    "activeTab",
-    "scripting",
-    "offscreen",
-    "tabs"
-  ],
+  "name": "Discord Chat Exporter",
+  "version": "1.0.0",
+  "description": "Export Discord messages and attachments from any channel or DM. Supports JSON, HTML, TXT, and CSV formats with optional attachment downloading.",
+  "permissions": [],
   "host_permissions": [
-    "<all_urls>"
+    "*://discord.com/*",
+    "*://discordapp.com/*",
+    "*://cdn.discordapp.com/*",
+    "*://media.discordapp.net/*"
   ],
-  "oauth2": {
-    "client_id": "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/spreadsheets",
-      "https://www.googleapis.com/auth/gmail.send",
-      "https://www.googleapis.com/auth/userinfo.email"
-    ]
-  },
   "background": {
-    "service_worker": "background/service-worker.js",
-    "type": "module"
-  },
-  "action": {
-    "default_popup": "popup/popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
+    "service_worker": "service-worker.js"
   },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "options_page": "options/options.html",
-  "commands": {
-    "start-picker": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+P",
-        "mac": "Command+Shift+P"
-      },
-      "description": "Start element picker on the current page"
-    },
-    "_execute_action": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+M",
-        "mac": "Command+Shift+M"
-      },
-      "description": "Open Price Monitor popup"
-    }
-  },
   "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content/price-overlay.js"],
-      "run_at": "document_idle"
-    },
     {
       "matches": ["*://discord.com/*", "*://discordapp.com/*"],
       "js": [
-        "discord-exporter/channel-detector.js",
-        "discord-exporter/api-client.js",
-        "discord-exporter/zip-writer.js",
-        "discord-exporter/attachment-downloader.js",
-        "discord-exporter/formatters/json-formatter.js",
-        "discord-exporter/formatters/html-formatter.js",
-        "discord-exporter/formatters/txt-formatter.js",
-        "discord-exporter/formatters/csv-formatter.js",
-        "discord-exporter/exporter-content.js"
+        "channel-detector.js",
+        "api-client.js",
+        "zip-writer.js",
+        "attachment-downloader.js",
+        "formatters/json-formatter.js",
+        "formatters/html-formatter.js",
+        "formatters/txt-formatter.js",
+        "formatters/csv-formatter.js",
+        "exporter-content.js"
       ],
-      "css": ["discord-exporter/exporter-panel.css"],
+      "css": ["exporter-panel.css"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["history/history.html"],
-      "matches": ["<all_urls>"]
-    },
-    {
-      "resources": [
-        "discord-exporter/exporter-inject.js",
-        "discord-exporter/exporter-panel.css"
-      ],
+      "resources": ["exporter-inject.js"],
       "matches": ["*://discord.com/*", "*://discordapp.com/*"]
     }
   ]

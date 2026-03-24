@@ -63,12 +63,33 @@
       "matches": ["<all_urls>"],
       "js": ["content/price-overlay.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://discord.com/*", "*://discordapp.com/*"],
+      "js": [
+        "discord-exporter/channel-detector.js",
+        "discord-exporter/api-client.js",
+        "discord-exporter/formatters/json-formatter.js",
+        "discord-exporter/formatters/html-formatter.js",
+        "discord-exporter/formatters/txt-formatter.js",
+        "discord-exporter/formatters/csv-formatter.js",
+        "discord-exporter/exporter-content.js"
+      ],
+      "css": ["discord-exporter/exporter-panel.css"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
       "resources": ["history/history.html"],
       "matches": ["<all_urls>"]
+    },
+    {
+      "resources": [
+        "discord-exporter/exporter-inject.js",
+        "discord-exporter/exporter-panel.css"
+      ],
+      "matches": ["*://discord.com/*", "*://discordapp.com/*"]
     }
   ]
 }

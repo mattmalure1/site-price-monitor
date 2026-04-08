@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Price Monitor - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="../icons/icon48.png" alt="Logo" class="logo">
+      <div>
+        <h1>Site Price Monitor</h1>
+        <p class="subtitle">Settings & Configuration</p>
+      </div>
+    </div>
+
+    <!-- Appearance -->
+    <section class="section">
+      <h2>Appearance</h2>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label for="dark-mode">Theme</label>
+          <p class="setting-desc">Choose light, dark, or follow your system preference</p>
+        </div>
+        <select id="dark-mode">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Price Overlay</label>
+          <p class="setting-desc">Show a floating price history chart when visiting tracked product pages</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="overlay-enabled" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- General Settings -->
+    <section class="section">
+      <h2>General</h2>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label for="default-interval">Default Check Interval</label>
+          <p class="setting-desc">How often to check prices (can be overridden per item)</p>
+        </div>
+        <select id="default-interval">
+          <option value="1">1 minute</option>
+          <option value="5">5 minutes</option>
+          <option value="15">15 minutes</option>
+          <option value="30" selected>30 minutes</option>
+          <option value="60">1 hour</option>
+          <option value="360">6 hours</option>
+          <option value="720">12 hours</option>
+          <option value="1440">24 hours</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Chrome Notifications</label>
+          <p class="setting-desc">Show desktop notifications when price alerts trigger</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="chrome-notifications" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Alert Settings -->
+    <section class="section">
+      <h2>Alert Behavior</h2>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Digest Mode</label>
+          <p class="setting-desc">Batch all alerts from a check cycle into a single notification instead of one per item</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="digest-mode">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label for="alert-cooldown">Alert Cooldown</label>
+          <p class="setting-desc">Minimum time between repeat alerts for the same item</p>
+        </div>
+        <select id="alert-cooldown">
+          <option value="0">No cooldown</option>
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60" selected>1 hour</option>
+          <option value="360">6 hours</option>
+          <option value="1440">24 hours</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Discord Integration -->
+    <section class="section">
+      <h2>Discord Notifications</h2>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label for="discord-webhook">Webhook URL</label>
+          <p class="setting-desc">Create a webhook in your Discord channel settings and paste the URL here</p>
+        </div>
+      </div>
+      <div class="input-row">
+        <input type="url" id="discord-webhook" placeholder="https://discord.com/api/webhooks/...">
+        <button id="btn-test-discord" class="btn-secondary btn-small">Test</button>
+      </div>
+      <div id="discord-status" class="status-msg hidden"></div>
+    </section>
+
+    <!-- Google Sheets Integration -->
+    <section class="section">
+      <h2>Google Sheets</h2>
+      <p class="setting-desc">Connect your Google account to log tracked items and price history to a spreadsheet.</p>
+
+      <div id="sheets-disconnected">
+        <button id="btn-connect-google" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          Connect Google Account
+        </button>
+      </div>
+
+      <div id="sheets-connected" class="hidden">
+        <div class="connected-info">
+          <span class="status-badge connected">Connected</span>
+          <a id="sheets-link" href="#" target="_blank" class="btn-link">Open Spreadsheet</a>
+          <button id="btn-disconnect-google" class="btn-danger btn-small">Disconnect</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Email Notifications -->
+    <section class="section">
+      <h2>Email Notifications</h2>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Send Email Alerts</label>
+          <p class="setting-desc">Receive email notifications when price alerts trigger (requires Google account connection)</p>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="email-enabled">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Data Management -->
+    <section class="section">
+      <h2>Data</h2>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Export Data</label>
+          <p class="setting-desc">Download all tracked items and price history as JSON</p>
+        </div>
+        <button id="btn-export" class="btn-secondary btn-small">Export</button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Import Data</label>
+          <p class="setting-desc">Import previously exported data</p>
+        </div>
+        <input type="file" id="import-file" accept=".json" class="hidden">
+        <button id="btn-import" class="btn-secondary btn-small">Import</button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-info">
+          <label>Clear All Data</label>
+          <p class="setting-desc">Delete all tracked items, price history, and settings</p>
+        </div>
+        <button id="btn-clear" class="btn-danger btn-small">Clear All</button>
+      </div>
+    </section>
+
+    <div class="footer">
+      <p>Site Price Monitor v2.0.0</p>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <script src="options.js" type="module"></script>
+</body>
+</html>
